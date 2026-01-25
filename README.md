@@ -1,5 +1,5 @@
 # CalculadoraEncargosCLT
-# Calculadora de Descontos (INSS, IRRF e FGTS) – Modo Leigo
+# Calculadora de Descontos (INSS, IRRF e FGTS) – Modo Simples
 
 Este projeto é uma calculadora web simples (HTML/CSS/JS) para estimar e conferir rapidamente INSS, IRRF e FGTS a partir de uma única entrada (salário do mês). O cálculo acontece automaticamente: digitou o valor, os resultados são atualizados sem precisar clicar em “Calcular”.
 
