@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"/>
+<meta content="width=device-width,initial-scale=1" name="viewport"/>
+<title>Calculadora de Descontos | INSS, IRRF e FGTS</title>
+<link href="style_validador.css" rel="stylesheet"/>
+</head>
+<body>
+<header class="topbar">
+<div class="wrap">
+<div class="brand">
+<div class="brand-title">Calculadora de Descontos</div>
+<div class="brand-sub">INSS, IRRF e FGTS (estimativa e validação rápida)</div>
+</div>
+</div>
+</header>
+<main class="wrap">
+<section class="grid">
+<article class="card">
+<div class="card-head">
+<h2>Entrada</h2>
+<p class="muted">Modo simples: digite o salário e veja INSS, IRRF e FGTS. Ajustes opcionais ficam recolhidos.</p>
+</div>
+<div class="form"><div class="row"><div class="field">
+<label for="rendimento">Salário do mês (R$)</label>
+<input id="rendimento" inputmode="decimal" placeholder="Ex.: 9000,00" type="text"/>
+<div class="hint">Digite apenas o salário. O sistema calcula INSS, IRRF e FGTS automaticamente.</div>
+</div></div><details class="details" id="detalhesAjustes"><summary>Ajustes opcionais</summary><div class="details-body"><div class="row">
+<div class="field">
+<label for="competencia">Regra/Tabela</label>
+<select id="competencia">
+<option value="2025_jan_abr">2025 (Jan–Abr)</option>
+<option value="2025_maio_dez">2025 (A partir de Maio)</option>
+<option selected="" value="2026">2026 (A partir de Jan) + redução até 7.350</option>
+</select>
+<div class="hint" id="hintTabela"></div>
+</div>
+<div class="field">
+<label for="tipoCalculo">Tipo de cálculo</label>
+<select id="tipoCalculo">
+<option selected="" value="mensal">Mensal (salário / provento tributável)</option>
+<option value="decimo_terceiro">13º (exclusivo na fonte)</option>
+</select>
+<div class="hint">Simulação na fonte (folha). Para 13º podem existir particularidades por evento no sistema.</div>
+</div>
+</div><div class="row"><div class="field">
+<label for="inss">INSS (R$)</label>
+<div class="input-addon">
+<input id="inss" inputmode="decimal" placeholder="Auto" type="text"/>
+<label class="addon-chip" title="Calcular INSS automaticamente pela tabela">
+<input checked="" id="inssAuto" type="checkbox"/>
+                  Auto
+                </label>
+</div>
+<div class="hint" id="hintINSS">Com “Auto” ligado, o INSS é calculado pela tabela progressiva e o campo fica travado.</div>
+</div></div><div class="row"><div class="field"><label for="fgtsPercent">FGTS (%)</label><input id="fgtsPercent" min="0" step="0.01" type="number" value="8"/><div class="hint">Padrão 8%. Ajuste para aprendiz (2%) ou regra específica, se necessário.</div></div><div class="field"><label for="fgtsBase">Base FGTS (R$)</label><input id="fgtsBase" inputmode="decimal" placeholder="Auto" type="text"/><div class="hint">Se vazio, usa o salário digitado. Preencha apenas se a base FGTS for diferente.</div></div></div><div class="row">
+<div class="field">
+<label for="dependentes">Qtd. dependentes</label>
+<input id="dependentes" min="0" step="1" type="number" value="0"/>
+<div class="hint">Dedução por dependente (apenas em “deduções legais”).</div>
+</div>
+<div class="field">
+<label for="pensao">Pensão alimentícia dedutível (R$)</label>
+<input id="pensao" inputmode="decimal" placeholder="Ex.: 0,00" type="text"/>
+<div class="hint">Somente quando dedutível conforme regras (decisão/acordo formal).</div>
+</div>
+</div><div class="row">
+<div class="field">
+<label for="outrasDeducoes">Outras deduções legais (R$)</label>
+<input id="outrasDeducoes" inputmode="decimal" placeholder="Ex.: 0,00" type="text"/>
+<div class="hint">Outras deduções cabíveis na fonte.</div>
+</div>
+<div class="field">
+<label class="inline">
+<input checked="" id="forcarOpcao" type="checkbox"/>
+                Forçar opção (não escolher automaticamente)
+              </label>
+<div class="row-inline">
+<label class="inline">
+<input name="opcao" type="radio" value="auto"/>
+                  Automático (mais benéfico)
+                </label>
+<label class="inline">
+<input checked="" name="opcao" type="radio" value="legal"/>
+                  Só deduções legais
+                </label>
+<label class="inline">
+<input name="opcao" type="radio" value="simplificado"/>
+                  Só desconto simplificado
+                </label>
+</div>
+<div class="divider"></div>
+<label class="inline">
+<input checked="" id="aplicarReducao2026" type="checkbox"/>
+                Aplicar redução 2026 (renda até R$ 7.350,00)
+              </label>
+<div class="hint">Em 2026, aplica redução do IR mensal para rendas até 7.350; acima disso não aplica.</div>
+</div>
+</div></div></details><div class="actions"><button class="secondary" id="btnLimpar" type="button">Limpar</button></div></div>
+</article>
+<article class="card">
+<div class="card-head">
+<h2>Resultado</h2>
+<p class="muted">Comparativo de bases e barra visual: IRRF a pagar vs redução aplicada.</p>
+</div>
+<div class="kpis"><div class="kpi"><div class="kpi-label">INSS</div><div class="kpi-value" id="kpiINSS">R$ 0,00</div><div class="kpi-sub">Desconto previdenciário estimado</div></div><div class="kpi"><div class="kpi-label">FGTS</div><div class="kpi-value" id="kpiFGTS">R$ 0,00</div><div class="kpi-sub">Depósito estimado (não desconta do salário)</div></div><div class="kpi"><div class="kpi-label">Total descontos</div><div class="kpi-value" id="kpiDescontos">R$ 0,00</div><div class="kpi-sub">INSS + IRRF</div></div><div class="kpi highlight"><div class="kpi-label">Líquido estimado</div><div class="kpi-value" id="kpiLiquido">R$ 0,00</div><div class="kpi-sub">Salário - (INSS + IRRF)</div></div>
+<div class="kpi">
+<div class="kpi-label">Base escolhida</div>
+<div class="kpi-value" id="kpiBase">R$ 0,00</div>
+<div class="kpi-sub" id="kpiMetodo">Método: -</div>
+</div>
+<div class="kpi">
+<div class="kpi-label">IRRF antes de redução</div>
+<div class="kpi-value" id="kpiIrrfAntes">R$ 0,00</div>
+<div class="kpi-sub">Tabela progressiva mensal</div>
+</div>
+<div class="kpi">
+<div class="kpi-label">Redução 2026</div>
+<div class="kpi-value" id="kpiRedutor">R$ 0,00</div>
+<div class="kpi-sub" id="kpiRedutorInfo">Não aplicado</div>
+</div>
+<div class="kpi highlight">
+<div class="kpi-label">IRRF final</div>
+<div class="kpi-value" id="kpiIrrfFinal">R$ 0,00</div>
+<div class="kpi-sub">Valor estimado para retenção</div>
+</div>
+</div>
+<div class="note" id="notaBeneficio" style="display:none;"></div>
+<div class="mini-breakdown">
+<div class="mini-row">
+<div class="mini-label">Base simplificada (rendimento − simplificado)</div>
+<div class="mini-val" id="baseSimplBruta">R$ 0,00</div>
+</div>
+<div class="mini-row">
+<div class="mini-label muted">Base após INSS (referência)</div>
+<div class="mini-val" id="baseSimplIR">R$ 0,00</div>
+</div>
+</div>
+<div class="viz card-mini">
+<div class="viz-head">
+<div class="viz-title">Visualização do imposto devido</div>
+<div class="viz-sub muted" id="vizCaption">Total (antes de redução): R$ 0,00</div>
+</div>
+<div aria-label="Barra de imposto devido e redução aplicada" class="viz-bar" role="img">
+<div class="seg pay" id="barPay" style="width:0%">
+<span class="seg-label" id="barPayLabel"></span>
+</div>
+<div class="seg red" id="barRed" style="width:0%">
+<span class="seg-label" id="barRedLabel"></span>
+</div>
+</div>
+<div class="viz-legend">
+<div class="legend-item">
+<span class="swatch pay"></span>
+<span class="legend-text">IRRF a pagar</span>
+<span class="legend-val" id="legendPay">R$ 0,00</span>
+</div>
+<div class="legend-item">
+<span class="swatch red"></span>
+<span class="legend-text">Redução aplicada</span>
+<span class="legend-val" id="legendRed">R$ 0,00</span>
+</div>
+</div>
+</div>
+<div class="tablebox">
+<table>
+<thead>
+<tr>
+<th>Comparativo</th>
+<th>Base IR (R$)</th>
+<th>Alíquota efetiva</th>
+<th>IRRF (R$)</th>
+</tr>
+</thead>
+<tbody>
+<tr id="rowLegal">
+<td>Deduções legais</td>
+<td id="tBaseLegal">R$ 0,00</td>
+<td id="tAliqLegal">0,00%</td>
+<td id="tIrrfLegal">R$ 0,00</td>
+</tr>
+<tr id="rowSimpl">
+<td>Desconto simplificado</td>
+<td id="tBaseSimpl">R$ 0,00</td>
+<td id="tAliqSimpl">0,00%</td>
+<td id="tIrrfSimpl">R$ 0,00</td>
+</tr>
+</tbody>
+</table>
+</div>
+<details class="details">
+<summary>Ver memória de cálculo</summary>
+<pre class="memoria" id="memoria"></pre>
+</details>
+</article>
+</section>
+<section class="card">
+<div class="card-head">
+<h2>Parâmetros usados</h2>
+<p class="muted">Valores (IRRF) carregados no cálculo. INSS é calculado pela tabela progressiva quando “Auto” estiver ligado.</p>
+</div>
+<div class="tablebox">
+<table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Valor</th>
+<th>Observação</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Dedução por dependente (mensal)</td>
+<td id="pDependente">-</td>
+<td>Aplicada apenas na base “deduções legais”.</td>
+</tr>
+<tr>
+<td>Limite do desconto simplificado (mensal)</td>
+<td id="pSimplificado">-</td>
+<td>Aplicada na base “simplificado”.</td>
+</tr>
+<tr>
+<td>Faixa isenta (limite superior)</td>
+<td id="pIsencao">-</td>
+<td>Se a base ficar dentro da faixa isenta, IRRF = 0.</td>
+</tr>
+<tr>
+<td>Redutor 2026 (faixa 5.000,01 a 7.350)</td>
+<td id="pRedutor2026">-</td>
+<td>Aplicado após o IRRF (quando habilitado).</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<footer class="footer">
+<div class="muted">Este simulador é para conferência na fonte (folha).</div>
+<div class="muted">Igarapé Digital · by Anderson Marinho</div>
+<div class="muted">
+	    Apoie o projeto · Pix (chave): <strong>oab.adv.anderson@gmail.com</strong>
+</div>
+</footer>
+</main>
+<script src="app_validador.js"></script>
+</body>
+</html>
