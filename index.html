@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta content="width=device-width,initial-scale=1" name="viewport"/>
-<title>Calculadora de Descontos | INSS, IRRF e FGTS</title>
+<title>Calculadora de Descontos | INSS, IRRF, FGTS e PLR</title>
 <link href="style_validador.css" rel="stylesheet"/>
 </head>
 <body>
@@ -12,7 +12,7 @@
 <div class="wrap">
 <div class="brand">
 <div class="brand-title">Calculadora de Descontos</div>
-<div class="brand-sub">INSS, IRRF e FGTS (estimativa e validação rápida)</div>
+<div class="brand-sub">INSS, IRRF, FGTS e PLR (estimativa e validação rápida)</div>
 </div>
 </div>
 </header>
@@ -21,7 +21,7 @@
 <article class="card">
 <div class="card-head">
 <h2>Entrada</h2>
-<p class="muted">Modo simples: digite o salário e veja INSS, IRRF e FGTS. Ajustes opcionais ficam recolhidos.</p>
+<p class="muted">Modo simples: digite o salário ou PLR e veja INSS, IRRF, FGTS e líquido estimado. Ajustes opcionais ficam recolhidos.</p>
 </div>
 <div class="form"><div class="row"><div class="field">
 <label for="rendimento">Salário do mês (R$)</label>
@@ -42,6 +42,7 @@
 <select id="tipoCalculo">
 <option selected="" value="mensal">Mensal (salário / provento tributável)</option>
 <option value="decimo_terceiro">13º (exclusivo na fonte)</option>
+<option value="plr">PLR (tributação exclusiva)</option>
 </select>
 <div class="hint">Simulação na fonte (folha). Para 13º podem existir particularidades por evento no sistema.</div>
 </div>
@@ -55,7 +56,18 @@
                 </label>
 </div>
 <div class="hint" id="hintINSS">Com “Auto” ligado, o INSS é calculado pela tabela progressiva e o campo fica travado.</div>
-</div></div><div class="row"><div class="field"><label for="fgtsPercent">FGTS (%)</label><input id="fgtsPercent" min="0" step="0.01" type="number" value="8"/><div class="hint">Padrão 8%. Ajuste para aprendiz (2%) ou regra específica, se necessário.</div></div><div class="field"><label for="fgtsBase">Base FGTS (R$)</label><input id="fgtsBase" inputmode="decimal" placeholder="Auto" type="text"/><div class="hint">Se vazio, usa o salário digitado. Preencha apenas se a base FGTS for diferente.</div></div></div><div class="row">
+</div></div><div class="row plr-only" style="display:none;">
+<div class="field">
+<label for="plrAnterior">PLR anterior no ano-calendário (R$)</label>
+<input id="plrAnterior" inputmode="decimal" placeholder="Ex.: 0,00" type="text"/>
+<div class="hint">Use quando já houve pagamento de PLR no mesmo ano. A tabela de PLR é anual/acumulada.</div>
+</div>
+<div class="field">
+<label for="irrfPlrAnterior">IRRF de PLR já retido no ano (R$)</label>
+<input id="irrfPlrAnterior" inputmode="decimal" placeholder="Ex.: 0,00" type="text"/>
+<div class="hint">O sistema calcula o IR total da PLR acumulada e abate o IRRF já retido.</div>
+</div>
+</div><div class="row"><div class="field"><label for="fgtsPercent">FGTS (%)</label><input id="fgtsPercent" min="0" step="0.01" type="number" value="8"/><div class="hint">Padrão 8%. Ajuste para aprendiz (2%) ou regra específica, se necessário.</div></div><div class="field"><label for="fgtsBase">Base FGTS (R$)</label><input id="fgtsBase" inputmode="decimal" placeholder="Auto" type="text"/><div class="hint">Se vazio, usa o salário digitado. Preencha apenas se a base FGTS for diferente.</div></div></div><div class="row">
 <div class="field">
 <label for="dependentes">Qtd. dependentes</label>
 <input id="dependentes" min="0" step="1" type="number" value="0"/>
@@ -176,13 +188,13 @@
 </thead>
 <tbody>
 <tr id="rowLegal">
-<td>Deduções legais</td>
+<td id="labelRowLegal">Deduções legais</td>
 <td id="tBaseLegal">R$ 0,00</td>
 <td id="tAliqLegal">0,00%</td>
 <td id="tIrrfLegal">R$ 0,00</td>
 </tr>
 <tr id="rowSimpl">
-<td>Desconto simplificado</td>
+<td id="labelRowSimpl">Desconto simplificado</td>
 <td id="tBaseSimpl">R$ 0,00</td>
 <td id="tAliqSimpl">0,00%</td>
 <td id="tIrrfSimpl">R$ 0,00</td>
@@ -199,7 +211,7 @@
 <section class="card">
 <div class="card-head">
 <h2>Parâmetros usados</h2>
-<p class="muted">Valores (IRRF) carregados no cálculo. INSS é calculado pela tabela progressiva quando “Auto” estiver ligado.</p>
+<p class="muted">Valores (IRRF) carregados no cálculo. INSS é calculado pela tabela progressiva quando “Auto” estiver ligado. PLR usa tabela exclusiva na fonte.</p>
 </div>
 <div class="tablebox">
 <table>
@@ -229,7 +241,12 @@
 <tr>
 <td>Redutor 2026 (faixa 5.000,01 a 7.350)</td>
 <td id="pRedutor2026">-</td>
-<td>Aplicado após o IRRF (quando habilitado).</td>
+<td>Aplicado após o IRRF mensal (quando habilitado). Não se aplica à PLR.</td>
+</tr>
+<tr>
+<td>Tabela PLR exclusiva</td>
+<td id="pPLR">-</td>
+<td>Tributação exclusiva na fonte, calculada de forma anual/acumulada.</td>
 </tr>
 </tbody>
 </table>

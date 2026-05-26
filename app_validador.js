@@ -26,6 +26,8 @@ const inssAutoEl = el("inssAuto");
 const dependentesEl = el("dependentes");
 const pensaoEl = el("pensao");
 const outrasDeducoesEl = el("outrasDeducoes");
+const plrAnteriorEl = el("plrAnterior");
+const irrfPlrAnteriorEl = el("irrfPlrAnterior");
 const forcarOpcaoEl = el("forcarOpcao");
 const aplicarReducao2026El = el("aplicarReducao2026");
 const hintTabelaEl = el("hintTabela");
@@ -65,6 +67,8 @@ const baseSimplIREl = el("baseSimplIR");       // vai mostrar: rendimento - INSS
 
 const rowLegalEl = el("rowLegal");
 const rowSimplEl = el("rowSimpl");
+const labelRowLegalEl = el("labelRowLegal");
+const labelRowSimplEl = el("labelRowSimpl");
 
 /* Barra visual */
 const vizCaptionEl = el("vizCaption");
@@ -80,6 +84,7 @@ const pDependente = el("pDependente");
 const pSimplificado = el("pSimplificado");
 const pIsencao = el("pIsencao");
 const pRedutor2026 = el("pRedutor2026");
+const pPLR = el("pPLR");
 
 const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 const pct = new Intl.NumberFormat("pt-BR", { style: "percent", minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -148,6 +153,43 @@ const TABELAS = {
     ],
     isencaoLimite: 2428.80,
     redutor: { rendaIsenta: 5000.00, rendaMax: 7350.00, coefA: 978.62, coefB: 0.133145 }
+  },
+};
+
+/* PLR - tributação exclusiva na fonte */
+const TABELAS_PLR = {
+  "2025_jan_abr": {
+    label: "PLR de janeiro a abril/2025",
+    faixas: [
+      { ate: 7640.80, aliquota: 0.0, deducao: 0.0 },
+      { ate: 9922.28, aliquota: 0.075, deducao: 573.06 },
+      { ate: 13167.00, aliquota: 0.15, deducao: 1317.23 },
+      { ate: 16380.38, aliquota: 0.225, deducao: 2304.76 },
+      { ate: Infinity, aliquota: 0.275, deducao: 3123.78 },
+    ],
+    isencaoLimite: 7640.80,
+  },
+  "2025_maio_dez": {
+    label: "PLR a partir de maio/2025",
+    faixas: [
+      { ate: 8214.40, aliquota: 0.0, deducao: 0.0 },
+      { ate: 9922.28, aliquota: 0.075, deducao: 616.08 },
+      { ate: 13167.00, aliquota: 0.15, deducao: 1360.25 },
+      { ate: 16380.38, aliquota: 0.225, deducao: 2347.78 },
+      { ate: Infinity, aliquota: 0.275, deducao: 3166.80 },
+    ],
+    isencaoLimite: 8214.40,
+  },
+  "2026": {
+    label: "PLR a partir de maio/2025 (vigente para 2026)",
+    faixas: [
+      { ate: 8214.40, aliquota: 0.0, deducao: 0.0 },
+      { ate: 9922.28, aliquota: 0.075, deducao: 616.08 },
+      { ate: 13167.00, aliquota: 0.15, deducao: 1360.25 },
+      { ate: 16380.38, aliquota: 0.225, deducao: 2347.78 },
+      { ate: Infinity, aliquota: 0.275, deducao: 3166.80 },
+    ],
+    isencaoLimite: 8214.40,
   },
 };
 
@@ -271,9 +313,43 @@ function setRadiosEnabled(enabled) {
   for (const r of radios) r.disabled = !enabled;
 }
 
+function isPLR() {
+  return tipoCalculoEl && tipoCalculoEl.value === "plr";
+}
+
+function atualizarModoCalculo() {
+  const plr = isPLR();
+  document.querySelectorAll(".plr-only").forEach((node) => {
+    node.style.display = plr ? "grid" : "none";
+  });
+
+  if (plr) {
+    inssAutoEl.checked = false;
+    inssEl.disabled = true;
+    inssEl.value = "0,00";
+    aplicarReducao2026El.checked = false;
+    aplicarReducao2026El.disabled = true;
+    hintINSSEl.textContent = "PLR não compõe a base mensal de INSS neste simulador.";
+    hintTabelaEl.textContent = "PLR usa tabela exclusiva na fonte e cálculo anual/acumulado.";
+  } else {
+    aplicarReducao2026El.disabled = competenciaEl.value !== "2026";
+    atualizarINSSAuto();
+  }
+}
+
+function calcularIRRFPLR(plrAcumulada, tabelaPLR) {
+  return calcularIRRFProgressivo(plrAcumulada, tabelaPLR.faixas);
+}
+
 function atualizarUIParametros() {
   const key = competenciaEl.value;
   const tab = TABELAS[key];
+  const tabPLR = TABELAS_PLR[key];
+
+  if (pPLR && tabPLR) {
+    const ultima = tabPLR.faixas[tabPLR.faixas.length - 1];
+    pPLR.textContent = `${tabPLR.label} | isenção até ${brl.format(tabPLR.isencaoLimite)} | maior faixa ${pct.format(ultima.aliquota)} dedução ${brl.format(ultima.deducao)}`;
+  }
 
   pDependente.textContent = brl.format(tab.dependente);
   pSimplificado.textContent = brl.format(tab.simplificado);
@@ -302,10 +378,17 @@ function atualizarUIParametros() {
       : "Usa a tabela válida a partir de maio/2025.";
   }
 
-  atualizarINSSAuto();
+  atualizarModoCalculo();
 }
 
 function atualizarINSSAuto() {
+  if (isPLR()) {
+    inssEl.disabled = true;
+    inssEl.value = "0,00";
+    hintINSSEl.textContent = "PLR não compõe a base mensal de INSS neste simulador.";
+    return;
+  }
+
   const auto = inssAutoEl.checked;
 
   if (auto) {
@@ -380,6 +463,8 @@ function limpar() {
   dependentesEl.value = 0;
   pensaoEl.value = "";
   outrasDeducoesEl.value = "";
+  if (plrAnteriorEl) plrAnteriorEl.value = "";
+  if (irrfPlrAnteriorEl) irrfPlrAnteriorEl.value = "";
 
   inssAutoEl.checked = true;
   inssEl.value = "";
@@ -432,8 +517,76 @@ function limpar() {
 function calcular() {
   const key = competenciaEl.value;
   const tab = TABELAS[key];
+  const tabPLR = TABELAS_PLR[key];
 
   const rendimento = parseBRNumber(rendimentoEl.value);
+
+  if (isPLR()) {
+    const plrAtual = rendimento;
+    const plrAnterior = plrAnteriorEl ? parseBRNumber(plrAnteriorEl.value) : 0;
+    const irrfAnterior = irrfPlrAnteriorEl ? parseBRNumber(irrfPlrAnteriorEl.value) : 0;
+    const plrAcumulada = round2(plrAtual + plrAnterior);
+
+    const calcPLRTotal = calcularIRRFPLR(plrAcumulada, tabPLR);
+    const calcPLRAtual = calcularIRRFPLR(plrAtual, tabPLR);
+    const irrfFinal = round2(clamp0(calcPLRTotal.irrf - irrfAnterior));
+    const liquido = round2(clamp0(plrAtual - irrfFinal));
+    const faixaPLR = calcPLRTotal.faixa;
+
+    kpiINSS.textContent = brl.format(0);
+    kpiFGTS.textContent = brl.format(0);
+    kpiDescontos.textContent = brl.format(irrfFinal);
+    kpiLiquido.textContent = brl.format(liquido);
+
+    kpiBase.textContent = brl.format(plrAcumulada);
+    kpiMetodo.textContent = "Método: PLR exclusiva na fonte (anual/acumulada)";
+    kpiIrrfAntes.textContent = brl.format(calcPLRTotal.irrf);
+    kpiRedutor.textContent = brl.format(irrfAnterior);
+    kpiRedutorInfo.textContent = "IRRF de PLR já retido no ano";
+    kpiIrrfFinal.textContent = brl.format(irrfFinal);
+
+    if (labelRowLegalEl) labelRowLegalEl.textContent = "PLR atual isolada";
+    if (labelRowSimplEl) labelRowSimplEl.textContent = "PLR acumulada no ano";
+
+    tBaseLegal.textContent = brl.format(plrAtual);
+    tAliqLegal.textContent = pct.format(calcPLRAtual.aliquotaEfetiva);
+    tIrrfLegal.textContent = brl.format(calcPLRAtual.irrf);
+
+    tBaseSimpl.textContent = brl.format(plrAcumulada);
+    tAliqSimpl.textContent = pct.format(calcPLRTotal.aliquotaEfetiva);
+    tIrrfSimpl.textContent = brl.format(calcPLRTotal.irrf);
+
+    baseSimplBrutaEl.textContent = brl.format(plrAnterior);
+    baseSimplIREl.textContent = brl.format(plrAcumulada);
+
+    setSelectedRow("simplificado");
+    setVizBar(calcPLRTotal.irrf, irrfFinal, Math.min(calcPLRTotal.irrf, irrfAnterior));
+
+    notaBeneficioEl.style.display = "block";
+    notaBeneficioEl.textContent = "PLR é calculada por tabela exclusiva. Se houver PLR anterior no mesmo ano, informe o valor anterior e o IRRF já retido para abater corretamente.";
+
+    const mem = [];
+    mem.push(`REGRA/TABELA: ${tabPLR.label}`);
+    mem.push("TIPO: PLR (tributação exclusiva na fonte)");
+    mem.push("");
+    mem.push("ENTRADAS");
+    mem.push(`- PLR atual: ${brl.format(plrAtual)}`);
+    mem.push(`- PLR anterior no ano: ${brl.format(plrAnterior)}`);
+    mem.push(`- PLR acumulada no ano: ${brl.format(plrAcumulada)}`);
+    mem.push(`- IRRF PLR já retido no ano: ${brl.format(irrfAnterior)}`);
+    mem.push("");
+    mem.push("CÁLCULO");
+    mem.push(`- Faixa aplicada no acumulado: até ${faixaPLR.ate === Infinity ? "acima da última faixa" : brl.format(faixaPLR.ate)} | alíquota ${pct.format(faixaPLR.aliquota)} | dedução ${brl.format(faixaPLR.deducao)}`);
+    mem.push(`- IRRF total da PLR acumulada = ${brl.format(calcPLRTotal.irrf)}`);
+    mem.push(`- IRRF desta PLR = IRRF total acumulado - IRRF já retido`);
+    mem.push(`  = ${brl.format(calcPLRTotal.irrf)} - ${brl.format(irrfAnterior)} = ${brl.format(irrfFinal)}`);
+    mem.push(`- PLR líquida estimada = ${brl.format(plrAtual)} - ${brl.format(irrfFinal)} = ${brl.format(liquido)}`);
+    memoriaEl.textContent = mem.join("\n");
+    return;
+  }
+
+  if (labelRowLegalEl) labelRowLegalEl.textContent = "Deduções legais";
+  if (labelRowSimplEl) labelRowSimplEl.textContent = "Desconto simplificado";
 
   if (inssAutoEl.checked) atualizarINSSAuto();
   const inss = parseBRNumber(inssEl.value);
@@ -620,7 +773,7 @@ function init() {
   radios.forEach((r) => r.addEventListener("change", calcularSeguro));
 
   // Formatação ao sair do campo
-  [rendimentoEl, pensaoEl, outrasDeducoesEl, fgtsBaseEl].forEach((x) => {
+  [rendimentoEl, pensaoEl, outrasDeducoesEl, fgtsBaseEl, plrAnteriorEl, irrfPlrAnteriorEl].forEach((x) => {
     if (x) formatarCampoMoedaOnBlur(x);
   });
   formatarCampoMoedaOnBlur(inssEl);
@@ -630,7 +783,7 @@ function init() {
   btnLimpar.addEventListener("click", limpar);
 
   // Recalcular enquanto digita (modo leigo)
-  const inputsDigitacao = [rendimentoEl, inssEl, pensaoEl, outrasDeducoesEl, fgtsBaseEl];
+  const inputsDigitacao = [rendimentoEl, inssEl, pensaoEl, outrasDeducoesEl, fgtsBaseEl, plrAnteriorEl, irrfPlrAnteriorEl];
   inputsDigitacao.forEach((x) => {
     if (!x) return;
     x.addEventListener("input", () => recalcularDebounced());
@@ -638,7 +791,12 @@ function init() {
   });
 
   // Campos numéricos/seleção
-  const inputsMudanca = [dependentesEl, aplicarReducao2026El, tipoCalculoEl, fgtsPercentEl];
+  tipoCalculoEl.addEventListener("change", () => {
+    atualizarModoCalculo();
+    calcularSeguro();
+  });
+
+  const inputsMudanca = [dependentesEl, aplicarReducao2026El, fgtsPercentEl];
   inputsMudanca.forEach((x) => {
     if (!x) return;
     x.addEventListener("change", calcularSeguro);
